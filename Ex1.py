@@ -1,6 +1,8 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 EPOCHS = 5
 
@@ -13,7 +15,7 @@ class MyModel(Model):
 		self.d1 = Dense(128, activation='relu')
 		self.d2 = Dense(10)
 	
-	def call(self, x):
+	def call(self, x, **kwargs):
 		x = self.conv1(x)
 		x = self.flatten(x)
 		x = self.d1(x)
@@ -54,22 +56,14 @@ train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy
 test_loss = tf.keras.metrics.Mean(name='test_loss')
 test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
-if __name__ == '__main__':
 
-	mnist = tf.keras.datasets.mnist
-	
-	(x_train, y_train), (x_test, y_test) = mnist.load_data()
-	x_train, x_test = x_train / 255.0, x_test / 255.0
-	
-	# Add a channels dimension
-	x_train = x_train[..., tf.newaxis].astype("float32")
-	x_test = x_test[..., tf.newaxis].astype("float32")
-	
-	train_ds = tf.data.Dataset.from_tensor_slices(
-		(x_train, y_train)).shuffle(10000).batch(32)
-	
-	test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
-	
+def train_and_appraise(train_ds, test_ds):
+	"""
+	Trains the data with the GD method and outputs the loss, accuracy, test loss and test accuracy achieved
+	during the process.
+	:param train_ds:
+	:param test_ds:
+	"""
 	for epoch in range(EPOCHS):
 		# Reset the metrics at the start of the next epoch
 		train_loss.reset_states()
@@ -88,3 +82,48 @@ if __name__ == '__main__':
 			  f'Accuracy: {train_accuracy.result() * 100}, '
 			  f'Test Loss: {test_loss.result()}, '
 			  f'Test Accuracy: {test_accuracy.result() * 100}')
+
+
+POSITIVE = r"positive"
+NEGATIVE = r"negative"
+
+
+def data_as_tensor():
+	lst = [POSITIVE, NEGATIVE]
+	X = []
+	y = []
+	for label in lst:
+		with open(label) as file:
+			for sample in file:
+				if str(label) == POSITIVE:
+					X.append(sample.strip())
+					y.append(1)
+				if str(label) == NEGATIVE:
+					X.append(sample.strip())
+					y.append(0)
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42)
+	ret = (tf.convert_to_tensor(X_train), tf.convert_to_tensor(y_train)), (
+		tf.convert_to_tensor(X_test), tf.convert_to_tensor(y_test))
+	return ret
+
+
+def get_data():
+	"""
+	Reads the data from the files, zips it with the correct label (positive or negative), shuffles it
+	and outputs the data as a tuple.
+	:return: tuple of the train dataset and the test data set, each given as an array of tuples of
+	the sample and the label
+	"""
+	(x_train, y_train), (x_test, y_test) = data_as_tensor()
+	# Add a channels dimension
+	x_train = x_train[..., tf.newaxis].astype("float32")
+	x_test = x_test[..., tf.newaxis].astype("float32")
+	train_ds = tf.data.Dataset.from_tensor_slices(
+		(x_train, y_train)).shuffle(10000).batch(32)
+	test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
+	return train_ds, test_ds
+
+
+if __name__ == '__main__':
+	train_ds, test_ds = get_data()
+	train_and_appraise(train_ds, test_ds)
