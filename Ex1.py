@@ -1,25 +1,27 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
-from tensorflow.keras import Model
+from tensorflow.keras import Model, backend
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-EPOCHS = 5
+EPOCHS = 500
 
 
 class MyModel(Model):
 	def __init__(self):
 		super(MyModel, self).__init__()
-		self.conv1 = Conv2D(32, (3, 3), activation='relu')
+		self.conv1 = Conv2D(32, (1, 1), activation='relu')
 		self.flatten = Flatten()
 		self.d1 = Dense(256, activation='relu')
-		self.d2 = Dense(2)
+		self.d2 = Dense(64)
+		self.d3 = Dense(2)
 	
 	def call(self, x, **kwargs):
 		x = self.conv1(x)
 		x = self.flatten(x)
 		x = self.d1(x)
-		return self.d2(x)
+		x = self.d2(x)
+		return self.d3(x)
 
 
 model = MyModel()
@@ -50,7 +52,8 @@ def test_step(sequences, labels):
 	test_accuracy(labels, predictions)
 
 
-optimizer = tf.keras.optimizers.Adam()
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-05, amsgrad=True,
+									name='Adam')
 train_loss = tf.keras.metrics.Mean(name='train_loss')
 train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 test_loss = tf.keras.metrics.Mean(name='test_loss')
@@ -92,24 +95,23 @@ def data_as_tensor():
 	lst = [POSITIVE, NEGATIVE]
 	X = []
 	y = []
+	A = ord("A")
 	for label in lst:
 		with open(label) as file:
 			for sample in file:
 				sample = sample.strip()
 				chrs = []
 				for c in sample:
-					chrs.append(ord(c))
-				if str(label) == POSITIVE:
-					X.append(chrs)
-					y.append(1)
+					chrs.append(ord(c) - A)
 				if str(label) == NEGATIVE:
 					X.append(chrs)
 					y.append(0)
+				if str(label) == POSITIVE:
+					X.append(chrs)
+					y.append(1)
 	X = np.array(X)
 	y = np.array(y)
-	print(X.shape)
 	X = X.reshape(X.shape + (1,)).astype('float32')
-	print(X.shape)
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42)
 	ret = (tf.convert_to_tensor(X_train), tf.convert_to_tensor(y_train)), (
 		tf.convert_to_tensor(X_test), tf.convert_to_tensor(y_test))
