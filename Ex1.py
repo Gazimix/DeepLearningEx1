@@ -10,10 +10,10 @@ EPOCHS = 5
 class MyModel(Model):
 	def __init__(self):
 		super(MyModel, self).__init__()
-		self.conv1 = Conv2D(32, 3, activation='relu')
+		self.conv1 = Conv2D(32, (3, 3), activation='relu')
 		self.flatten = Flatten()
-		self.d1 = Dense(128, activation='relu')
-		self.d2 = Dense(10)
+		self.d1 = Dense(256, activation='relu')
+		self.d2 = Dense(2)
 	
 	def call(self, x, **kwargs):
 		x = self.conv1(x)
@@ -95,12 +95,21 @@ def data_as_tensor():
 	for label in lst:
 		with open(label) as file:
 			for sample in file:
+				sample = sample.strip()
+				chrs = []
+				for c in sample:
+					chrs.append(ord(c))
 				if str(label) == POSITIVE:
-					X.append(sample.strip())
+					X.append(chrs)
 					y.append(1)
 				if str(label) == NEGATIVE:
-					X.append(sample.strip())
+					X.append(chrs)
 					y.append(0)
+	X = np.array(X)
+	y = np.array(y)
+	print(X.shape)
+	X = X.reshape(X.shape + (1,)).astype('float32')
+	print(X.shape)
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42)
 	ret = (tf.convert_to_tensor(X_train), tf.convert_to_tensor(y_train)), (
 		tf.convert_to_tensor(X_test), tf.convert_to_tensor(y_test))
@@ -116,8 +125,8 @@ def get_data():
 	"""
 	(x_train, y_train), (x_test, y_test) = data_as_tensor()
 	# Add a channels dimension
-	x_train = x_train[..., tf.newaxis].astype("float32")
-	x_test = x_test[..., tf.newaxis].astype("float32")
+	x_train = x_train[..., tf.newaxis]
+	x_test = x_test[..., tf.newaxis]
 	train_ds = tf.data.Dataset.from_tensor_slices(
 		(x_train, y_train)).shuffle(10000).batch(32)
 	test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
