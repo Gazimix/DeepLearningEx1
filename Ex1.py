@@ -4,24 +4,35 @@ from tensorflow.keras import Model, backend
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-EPOCHS = 500
+EPOCHS = 10
 
 
 class MyModel(Model):
 	def __init__(self):
 		super(MyModel, self).__init__()
-		self.conv1 = Conv2D(32, (1, 1), activation='relu')
 		self.flatten = Flatten()
-		self.d1 = Dense(256, activation='relu')
-		self.d2 = Dense(64)
-		self.d3 = Dense(2)
+		# self.d1 = Dense(1024, activation='relu')
+		# self.d2 = Dense(512, activation='relu')
+		self.d3 = Dense(256, activation='relu')
+		self.d4 = Dense(128, activation='relu')
+		self.d5 = Dense(64, activation='relu')
+		self.d6 = Dense(32, activation='relu')
+		self.d7 = Dense(16, activation='relu')
+		self.d8 = Dense(8, activation='relu')
+		self.d9 = Dense(4, activation='relu')
+		self.d10 = Dense(2, activation='relu')
 	
 	def call(self, x, **kwargs):
-		x = self.conv1(x)
 		x = self.flatten(x)
-		x = self.d1(x)
-		x = self.d2(x)
-		return self.d3(x)
+		# x = self.d1(x)
+		# x = self.d2(x)
+		x = self.d3(x)
+		x = self.d4(x)
+		x = self.d6(x)
+		x = self.d7(x)
+		x = self.d8(x)
+		x = self.d9(x)
+		return self.d10(x)
 
 
 model = MyModel()
@@ -52,8 +63,8 @@ def test_step(sequences, labels):
 	test_accuracy(labels, predictions)
 
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-05, amsgrad=True,
-									name='Adam')
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=True,
+									 name='Adam')
 train_loss = tf.keras.metrics.Mean(name='train_loss')
 train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 test_loss = tf.keras.metrics.Mean(name='test_loss')
@@ -93,25 +104,28 @@ NEGATIVE = r"negative"
 
 def data_as_tensor():
 	lst = [POSITIVE, NEGATIVE]
+	AMINOS = 'GALMFWKQESPVICYHRNDT'
+	char_to_int = dict((c, i) for i, c in enumerate(AMINOS))
+	int_to_char = dict((i, c) for i, c in enumerate(AMINOS))
 	X = []
 	y = []
-	A = ord("A")
 	for label in lst:
 		with open(label) as file:
 			for sample in file:
-				sample = sample.strip()
-				chrs = []
-				for c in sample:
-					chrs.append(ord(c) - A)
-				if str(label) == NEGATIVE:
-					X.append(chrs)
-					y.append(0)
+				sample = sample.strip().upper()
+				integer_encoded = np.array([char_to_int[char] for char in sample])
+				amino_acid = []
+				for value in integer_encoded:
+					letter = np.zeros(len(AMINOS))
+					letter[value] = 1
+					amino_acid.append(letter)
 				if str(label) == POSITIVE:
-					X.append(chrs)
+					X.append(np.array(amino_acid))
 					y.append(1)
-	X = np.array(X)
-	y = np.array(y)
-	X = X.reshape(X.shape + (1,)).astype('float32')
+				if str(label) == NEGATIVE:
+					X.append(np.array(amino_acid))
+					y.append(0)
+	X = np.array(X).astype('float32')
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=42)
 	ret = (tf.convert_to_tensor(X_train), tf.convert_to_tensor(y_train)), (
 		tf.convert_to_tensor(X_test), tf.convert_to_tensor(y_test))
