@@ -24,7 +24,7 @@ class MyModel(Model):
 		self.d8 = Dense(8, activation='relu')
 		self.d9 = Dense(4, activation='relu')
 		self.d10 = Dense(2, activation='relu')
-		self.a = Activation(activation='softplus')
+		self.a = Activation(activation='sigmoid')
 	
 	def call(self, x, **kwargs):
 		x = self.flatten(x)
@@ -34,11 +34,11 @@ class MyModel(Model):
 		x = self.d4(x)
 		# x = self.d5(x)
 		x = self.d6(x)
-		x = self.d7(x)
+		# x = self.d7(x)
 		# x = self.d8(x)
 		x = self.d9(x)
 		x = self.d10(x)
-		# x = self.a(x)
+		x = self.a(x)
 		return x
 
 model = MyModel()
@@ -49,7 +49,7 @@ def train_step(sequences, labels):
 	with tf.GradientTape() as tape:
 		# training=True is only needed if there are layers with different
 		# behavior during training versus inference (e.g. Dropout).
-		predictions = model(sequences, training=True)
+		predictions = model(sequences, training=False)
 		loss = loss_object(labels, predictions)
 	gradients = tape.gradient(loss, model.trainable_variables)
 	optimizer.apply_gradients(zip(gradients, model.trainable_variables))
