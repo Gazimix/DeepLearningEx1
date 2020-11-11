@@ -4,10 +4,10 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Flatten, Activation
 
-EPOCHS = 15
+EPOCHS = 3
 AMINOS = 'GALMFWKQESPVICYHRNDT'
-char_to_int = dict((c, i) for i, c in enumerate(AMINOS))
-int_to_char = dict((i, c) for i, c in enumerate(AMINOS))
+char_to_int = {c: i for i, c in enumerate(AMINOS)}
+int_to_char = {i: c for i, c in enumerate(AMINOS)}
 
 
 class MyModel(Model):
@@ -144,16 +144,30 @@ def get_data():
 def get_9_mers():
     string = ""
     with open(r"predict") as pred:
-        for p in pred:
-            string += p.strip()
-    k_mers = []
-    for i in range(len(string) - 8):
-        k_mers.append(get_one_hot(string[i:i + 9]))
-    k_mers = np.array(k_mers)
-    return k_mers
+        lines = pred.readlines()
+    encoded_k, nine_mers = [], []
+    for l in lines:
+        for i in range(len(l.strip()) - 8):
+            partial = l[i:i + 9]
+            nine_mers.append(partial)
+            encoded_k.append(get_one_hot(partial))
+    encoded_k = np.array(encoded_k)
+    return encoded_k, nine_mers
 
 
 if __name__ == '__main__':
     train_ds, test_ds = get_data()
     train_and_appraise(train_ds, test_ds)
-    print(model.predict(get_9_mers()))
+    encoded, nine_mers = get_9_mers()
+    predict = model.predict(encoded)
+
+    predictions = [x[0] > x[1] for x in predict]
+
+    predicted_true = [x for i, x in enumerate(nine_mers) if predictions[i]]
+    predicted_false = [x for i, x in enumerate(nine_mers) if not predictions[i]]
+    results= [(nine_mers[i], predictions[i], max(predict[i])) for i in range(len(predict))]
+    # for r in results:
+    #     if not r[1]:
+    #         print(r)
+
+    print(sum(1 if _ else 0 for _ in predictions) / len(predictions))
