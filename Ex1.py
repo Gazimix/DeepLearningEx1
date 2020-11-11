@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Flatten, Activation
 
-EPOCHS = 3
+EPOCHS = 15
 AMINOS = 'GALMFWKQESPVICYHRNDT'
 char_to_int = dict((c, i) for i, c in enumerate(AMINOS))
 int_to_char = dict((i, c) for i, c in enumerate(AMINOS))
@@ -14,31 +14,17 @@ class MyModel(Model):
     def __init__(self):
         super(MyModel, self).__init__()
         self.flatten = Flatten()
-        self.d1 = Dense(1024, activation='relu')
-        self.d2 = Dense(512, activation='relu')
-        self.d3 = Dense(256, activation='relu')
-        self.d4 = Dense(128, activation='relu')
-        self.d5 = Dense(64, activation='relu')
-        self.d6 = Dense(32, activation='relu')
-        self.d7 = Dense(16, activation='relu')
-        self.d8 = Dense(8, activation='relu')
-        self.d9 = Dense(4, activation='relu')
-        self.d10 = Dense(2, activation='relu')
-        self.a = Activation(activation='softplus')
+        self.d1 = Dense(256, activation='relu')
+        self.d2 = Dense(32, activation='relu')
+        self.d3 = Dense(2, activation='relu')
+        self.a = Activation(activation='softmax')
 
     def call(self, x, **kwargs):
         x = self.flatten(x)
-        # x = self.d1(x)
-        # x = self.d2(x)
+        x = self.d1(x)
+        x = self.d2(x)
         x = self.d3(x)
-        x = self.d4(x)
-        # x = self.d5(x)
-        x = self.d6(x)
-        x = self.d7(x)
-        # x = self.d8(x)
-        x = self.d9(x)
-        x = self.d10(x)
-        # x = self.a(x)
+        x = self.a(x)
         return x
 
 
