@@ -33,7 +33,7 @@ loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
 
 
 @tf.function
-def train_step(sequences, labels):
+def train_step(model: MyModel, sequences, labels):
     with tf.GradientTape() as tape:
         # training=True is only needed if there are layers with different
         # behavior during training versus inference (e.g. Dropout).
@@ -46,7 +46,7 @@ def train_step(sequences, labels):
 
 
 @tf.function
-def test_step(sequences, labels):
+def test_step(model:MyModel, sequences, labels):
     # training=False is only needed if there are layers with different
     # behavior during training versus inference (e.g. Dropout).
     predictions = model(sequences, training=True)
@@ -62,7 +62,7 @@ test_loss = tf.keras.metrics.Mean(name='test_loss')
 test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
 
-def train_and_appraise(train_ds, test_ds):
+def train_and_appraise(model:MyModel,train_ds, test_ds):
     """
     Trains the data with the GD method and outputs the loss, accuracy, test loss and test accuracy achieved
     during the process.
@@ -77,10 +77,10 @@ def train_and_appraise(train_ds, test_ds):
         test_accuracy.reset_states()
 
         for sequences, labels in train_ds:
-            train_step(sequences, labels)
+            train_step(model, sequences, labels)
 
         for test_sequences, test_labels in test_ds:
-            test_step(test_sequences, test_labels)
+            test_step(model, test_sequences, test_labels)
 
         print(f'Epoch {epoch + 1}, '
               f'Loss: {train_loss.result()}, '
@@ -157,7 +157,7 @@ def get_9_mers():
 
 if __name__ == '__main__':
     train_ds, test_ds = get_data()
-    train_and_appraise(train_ds, test_ds)
+    train_and_appraise(model, train_ds, test_ds)
     encoded, nine_mers = get_9_mers()
     predict = model.predict(encoded)
 
@@ -165,7 +165,8 @@ if __name__ == '__main__':
 
     predicted_true = [x for i, x in enumerate(nine_mers) if predictions[i]]
     predicted_false = [x for i, x in enumerate(nine_mers) if not predictions[i]]
-    results = [(nine_mers[i], predictions[i], max(predict[i])) for i in range(len(predict))]
+    results = [(nine_mers[i], predictions[i], max(predict[i])) for i in
+               range(len(predict))]
     # for r in results:
     #     if not r[1]:
     #         print(r)
@@ -177,12 +178,20 @@ if __name__ == '__main__':
     print(f"certain 1.000 count = {count_ones} of {len(results)} ("
           f"{100 * count_ones // len(results)}%)")
 
+    for t in results:
+        name, sign, p = t
+        if not sign:
+            p *= -1
+        if name in aggregated:
+            aggregated[name].append(p)
+        else:
+            aggregated[name] = [p]
     certains = [r for r in results if r[2] == 1]
     certain_true = [r for r in certains if r[2]]
     certain_false = [r for r in certains if not r[2]]
-    print(f"certain positive = {len(certain_true)}, certain false={len(certain_false)}")
-    # for r in results:
-    #     print(r)
+    print(f"certain positives = {certain_true}")
+    print(f"certain negavies = {certain_false}")
+    print()
 
 
 def circle_loss(difference):
