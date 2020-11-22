@@ -144,19 +144,22 @@ def get_data():
 def get_9_mers():
     string = ""
     with open(r"predict") as pred:
-        lines = pred.readlines()
+        lines = pred.read().replace("\n","").strip()
     encoded_k, nine_mers = [], []
-    for l in lines:
-        for i in range(len(l.strip()) - 8):
-            partial = l[i:i + 9]
-            nine_mers.append(partial)
-            encoded_k.append(get_one_hot(partial))
+
+    for i in range(len(lines.strip()) - 8):
+        partial = lines[i:i + 9]
+        nine_mers.append(partial)
+        encoded_k.append(get_one_hot(partial))
+
     encoded_k = np.array(encoded_k)
     return encoded_k, nine_mers
 
 
 if __name__ == '__main__':
     train_ds, test_ds = get_data()
+    aggregated = {}
+
     train_and_appraise(model, train_ds, test_ds)
     encoded, nine_mers = get_9_mers()
     predict = model.predict(encoded)
