@@ -56,7 +56,7 @@ def test_step(model:MyModel, sequences, labels):
     test_accuracy(labels, predictions)
 
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.005)
 train_loss = tf.keras.metrics.Mean(name='train_loss')
 train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 test_loss = tf.keras.metrics.Mean(name='test_loss')
@@ -185,12 +185,12 @@ if __name__ == '__main__':
     certain_true = [r[0] for r in certains if r[1]]
     certain_false = [r[0] for r in certains if not r[1]]
     print(f"certain positives = {certain_true}")
-    print(f"certain negatives = {certain_false}")
+    # print(f"certain negatives = {certain_false}")
     print()
     positives = ([r for r in results if r[1]])
     negatives = [r for r in results if not r[1]]
     print(f"positives = {positives}")
-    pd.DataFrame.from_records(results).to_excel("covid.xlsx")
+    pd.DataFrame.from_records(results).to_excel("covid7.xlsx")
     print()
     print(f"{len(positives)} positives, {len(negatives)} negatives")
     print(f"{len(positives)*100/len(results)} % positives")
