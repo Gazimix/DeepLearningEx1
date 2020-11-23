@@ -1,10 +1,11 @@
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Flatten, Activation
 
-EPOCHS = 3
+EPOCHS = 5
 AMINOS = 'GALMFWKQESPVICYHRNDT'
 char_to_int = {c: i for i, c in enumerate(AMINOS)}
 int_to_char = {i: c for i, c in enumerate(AMINOS)}
@@ -158,18 +159,17 @@ def get_9_mers():
 
 if __name__ == '__main__':
     train_ds, test_ds = get_data()
-    aggregated = {}
 
     train_and_appraise(model, train_ds, test_ds)
     encoded, nine_mers = get_9_mers()
     predict = model.predict(encoded)
 
-    predictions = [x[0] > x[1] for x in predict]
+    predictions = [x[0] < x[1] for x in predict]
 
     predicted_true = [x for i, x in enumerate(nine_mers) if predictions[i]]
     predicted_false = [x for i, x in enumerate(nine_mers) if not predictions[i]]
-    results = [(nine_mers[i], predictions[i], max(predict[i])) for i in
-               range(len(predict))]
+    results = [(nine_mers[i], predictions[i],
+                max(predict[i])) for i in range(len(predict))]
     # for r in results:
     #     if not r[1]:
     #         print(r)
@@ -181,21 +181,19 @@ if __name__ == '__main__':
     print(f"certain 1.000 count = {count_ones} of {len(results)} ("
           f"{100 * count_ones // len(results)}%)")
 
-    for t in results:
-        name, sign, p = t
-        if not sign:
-            p *= -1
-        if name in aggregated:
-            aggregated[name].append(p)
-        else:
-            aggregated[name] = [p]
     certains = [r for r in results if r[2] == 1]
-    certain_true = [r for r in certains if r[2]]
-    certain_false = [r for r in certains if not r[2]]
+    certain_true = [r[0] for r in certains if r[1]]
+    certain_false = [r[0] for r in certains if not r[1]]
     print(f"certain positives = {certain_true}")
-    print(f"certain negavies = {certain_false}")
+    print(f"certain negatives = {certain_false}")
     print()
-
+    positives = ([r for r in results if r[1]])
+    negatives = [r for r in results if not r[1]]
+    print(f"positives = {positives}")
+    pd.DataFrame.from_records(results).to_excel("covid.xlsx")
+    print()
+    print(f"{len(positives)} positives, {len(negatives)} negatives")
+    print(f"{len(positives)*100/len(results)} % positives")
 
 def circle_loss(difference):
     """
