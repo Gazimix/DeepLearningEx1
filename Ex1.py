@@ -127,15 +127,12 @@ def get_one_hot(sample):
 
 def get_data():
     """
-    Reads the data from the files, zips it with the correct label (positive or negative), shuffles it
-    and outputs the data as a tuple.
+    Reads the data from the files, zips it with the correct label (positive or negative),
+     shuffles it and outputs the data as a tuple.
     :return: tuple of the train dataset and the test data set, each given as an array of tuples of
     the sample and the label
     """
     (x_train, y_train), (x_test, y_test) = data_as_tensor()
-    # Add a channels dimension
-    # x_train = x_train[..., tf.newaxis]
-    # x_test = x_test[..., tf.newaxis]
     train_ds = tf.data.Dataset.from_tensor_slices(
         (x_train, y_train)).shuffle(10000).batch(32)
     test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
@@ -143,38 +140,30 @@ def get_data():
 
 
 def get_9_mers():
-    string = ""
     with open(r"predict") as pred:
         lines = pred.read().replace("\n","").strip()
-    encoded_k, nine_mers = [], []
+    encoded_k, k_mers = [], []
 
     for i in range(len(lines.strip()) - 8):
         partial = lines[i:i + 9]
-        nine_mers.append(partial)
+        k_mers.append(partial)
         encoded_k.append(get_one_hot(partial))
 
     encoded_k = np.array(encoded_k)
-    return encoded_k, nine_mers
+    return encoded_k, k_mers
 
 
-if __name__ == '__main__':
-    train_ds, test_ds = get_data()
-
-    train_and_appraise(model, train_ds, test_ds)
-    encoded, nine_mers = get_9_mers()
-    predict = model.predict(encoded)
-
-    predictions = [x[0] < x[1] for x in predict]
-
+def result_stats(predicted):
+    predictions = [x[0] < x[1] for x in predicted]
     predicted_true = [x for i, x in enumerate(nine_mers) if predictions[i]]
     predicted_false = [x for i, x in enumerate(nine_mers) if not predictions[i]]
     results = [(nine_mers[i], predictions[i],
-                max(predict[i])) for i in range(len(predict))]
+                max(predicted[i])) for i in range(len(predicted))]
     # for r in results:
     #     if not r[1]:
     #         print(r)
-
     results.sort(key=lambda tup: tup[2], reverse=True)
+
     print(f"epoch count ={EPOCHS}")
     # print(f"positive rate={sum(1 if _ else 0 for _ in predictions) / len(predictions)}")
     count_ones = sum(1 if t[2] == 1 else 0 for t in results)
@@ -187,13 +176,28 @@ if __name__ == '__main__':
     print(f"certain positives = {certain_true}")
     # print(f"certain negatives = {certain_false}")
     print()
+
     positives = ([r for r in results if r[1]])
     negatives = [r for r in results if not r[1]]
     print(f"positives = {positives}")
-    pd.DataFrame.from_records(results).to_excel("covid7.xlsx")
+
+    # pd.DataFrame.from_records(results).to_excel("covid7.xlsx")
+
     print()
     print(f"{len(positives)} positives, {len(negatives)} negatives")
-    print(f"{len(positives)*100/len(results)} % positives")
+    print(f"{len(positives) * 100 / len(results)} % positives")
+
+
+if __name__ == '__main__':
+    train_ds, test_ds = get_data()
+
+    train_and_appraise(model, train_ds, test_ds)
+    encoded, nine_mers = get_9_mers()
+    predict = model.predict(encoded)
+
+    result_stats(predict)
+
+
 
 def circle_loss(difference):
     """
