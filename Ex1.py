@@ -1,14 +1,25 @@
+from datetime import datetime
+
+import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Flatten, Activation
 
-EPOCHS = 5
+LEARNING_RATE = 0.003
+EPOCHS = 3
 AMINOS = 'GALMFWKQESPVICYHRNDT'
 char_to_int = {c: i for i, c in enumerate(AMINOS)}
 int_to_char = {i: c for i, c in enumerate(AMINOS)}
+
+train_losses = []
+test_losses = []
+test_accuracies = []
+train_accuracies = []
+
+POSITIVE = r"positive"
+NEGATIVE = r"negative"
 
 
 class MyModel(Model):
@@ -47,7 +58,7 @@ def train_step(model: MyModel, sequences, labels):
 
 
 @tf.function
-def test_step(model:MyModel, sequences, labels):
+def test_step(model: MyModel, sequences, labels):
     # training=False is only needed if there are layers with different
     # behavior during training versus inference (e.g. Dropout).
     predictions = model(sequences, training=True)
@@ -56,14 +67,14 @@ def test_step(model:MyModel, sequences, labels):
     test_accuracy(labels, predictions)
 
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.005)
+optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE)
 train_loss = tf.keras.metrics.Mean(name='train_loss')
 train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 test_loss = tf.keras.metrics.Mean(name='test_loss')
 test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
 
-def train_and_appraise(model:MyModel,train_ds, test_ds):
+def train_and_appraise(model: MyModel, train_ds, test_ds):
     """
     Trains the data with the GD method and outputs the loss, accuracy, test loss and test accuracy achieved
     during the process.
@@ -72,10 +83,7 @@ def train_and_appraise(model:MyModel,train_ds, test_ds):
     """
     for epoch in range(EPOCHS):
         # Reset the metrics at the start of the next epoch
-        train_loss.reset_states()
-        train_accuracy.reset_states()
-        test_loss.reset_states()
-        test_accuracy.reset_states()
+        reset_loss()
 
         for sequences, labels in train_ds:
             train_step(model, sequences, labels)
@@ -89,9 +97,21 @@ def train_and_appraise(model:MyModel,train_ds, test_ds):
               f'Test Loss: {test_loss.result()}, '
               f'Test Accuracy: {test_accuracy.result() * 100}')
 
+        log_loss()
 
-POSITIVE = r"positive"
-NEGATIVE = r"negative"
+
+def reset_loss():
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+    test_loss.reset_states()
+    test_accuracy.reset_states()
+
+
+def log_loss():
+    train_losses.append(train_loss.result())
+    test_losses.append(test_loss.result())
+    test_accuracies.append(test_accuracy.result())
+    train_accuracies.append(train_accuracy.result())
 
 
 def data_as_tensor():
@@ -141,7 +161,7 @@ def get_data():
 
 def get_9_mers():
     with open(r"predict") as pred:
-        lines = pred.read().replace("\n","").strip()
+        lines = pred.read().replace("\n", "").strip()
     encoded_k, k_mers = [], []
 
     for i in range(len(lines.strip()) - 8):
@@ -188,6 +208,31 @@ def result_stats(predicted):
     print(f"{len(positives) * 100 / len(results)} % positives")
 
 
+def plot():
+    plt.xkcd()
+    plt.figure(figsize=(8, 6))
+    plt.subplot(221)
+    plt.title("Test loss")
+    plt.xlabel("Epochs")
+    plt.plot(test_losses)
+    plt.subplot(222)
+    plt.xlabel("Epochs")
+    plt.title("Train loss")
+    plt.plot(train_losses)
+    plt.subplot(223)
+    plt.xlabel("Epochs")
+    plt.title("Accuracy of test")
+    plt.plot(test_accuracies)
+    plt.subplot(224)
+    plt.xlabel("Epochs")
+    plt.title("Accuracy of train")
+    plt.plot(train_accuracies)
+    plt.suptitle(f"{EPOCHS} Epochs\n"
+                 f"Learning rate = {LEARNING_RATE}")
+    plt.show()
+    plt.savefig(f"{EPOCHS}_{LEARNING_RATE}.png")
+
+
 if __name__ == '__main__':
     train_ds, test_ds = get_data()
 
@@ -196,10 +241,10 @@ if __name__ == '__main__':
     predict = model.predict(encoded)
 
     result_stats(predict)
+    plot()
 
 
-
-def circle_loss(difference):
+def circle_los(difference):
     """
     :param difference: predicted subtracted from true label
     :return: circle-compatible loss value
